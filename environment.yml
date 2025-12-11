@@ -18,4 +18,5 @@ dependencies:
     - requests
     - pytest
     - black
+    - ollama
     # add other pip deps here

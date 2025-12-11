@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DLP Chatbot - Malaysian Property Law Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">DLP Chatbot</h1>
+                <p class="sidebar-subtitle">Malaysian Property Law</p>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button class="nav-tab active" data-tab="chat">💬 Chat</button>
+                <button class="nav-tab" data-tab="guidelines">📋 Guidelines</button>
+                <button class="nav-tab" data-tab="assessment">⚖️ Assessment</button>
+                <button class="nav-tab" data-tab="history">📚 History</button>
+                <button class="nav-tab" data-tab="legal">⚖️ Legal Refs</button>
+                <button class="nav-tab" data-tab="feedback">💭 Feedback</button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="clearHistory" class="btn-secondary">Clear History</button>
+                <button id="toggleTheme" class="btn-secondary">🌙 Theme</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Chat Tab -->
+            <section id="chat" class="tab-content active">
+                <div class="chat-container">
+                    <div id="chatMessages" class="chat-messages"></div>
+                </div>
+                <div class="chat-input-area">
+                    <input 
+                        type="text" 
+                        id="userInput" 
+                        class="chat-input" 
+                        placeholder="Ask about DLP, defects, or legal matters..."
+                        autocomplete="off"
+                    >
+                    <button id="sendBtn" class="btn-primary">Send</button>
+                </div>
+            </section>
+
+            <!-- Guidelines Tab -->
+            <section id="guidelines" class="tab-content">
+                <div class="content-header">
+                    <h2>Defect Liability Period Guidelines</h2>
+                    <p>Comprehensive DLP information for Malaysian property law</p>
+                </div>
+                <div id="guidelinesContent" class="content-grid">
+                    <!-- Guidelines will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Assessment Tab -->
+            <section id="assessment" class="tab-content">
+                <div class="content-header">
+                    <h2>DLP Assessment Tool</h2>
+                    <p>Evaluate defect liability based on Malaysian property law</p>
+                </div>
+                <form id="assessmentForm" class="assessment-form">
+                    <div class="form-group">
+                        <label for="defectType">Defect Type:</label>
+                        <select id="defectType" required>
+                            <option value="">-- Select Defect Type --</option>
+                            <option value="structural">Structural Defect</option>
+                            <option value="finishing">Finishing Defect</option>
+                            <option value="electrical">Electrical Defect</option>
+                            <option value="plumbing">Plumbing Defect</option>
+                            <option value="other">Other Defect</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reportedWithin">Reported Within DLP Period:</label>
+                        <select id="reportedWithin" required>
+                            <option value="">-- Select --</option>
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="severity">Severity Level:</label>
+                        <select id="severity" required>
+                            <option value="">-- Select Severity --</option>
+                            <option value="minor">Minor (Cosmetic)</option>
+                            <option value="moderate">Moderate (Functional)</option>
+                            <option value="severe">Severe (Safety Risk)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="repairCost">Estimated Repair Cost (RM):</label>
+                        <input type="number" id="repairCost" min="0" placeholder="Enter amount">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="details">Additional Details:</label>
+                        <textarea id="details" rows="4" placeholder="Describe the defect in detail..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Run Assessment</button>
+                </form>
+                <div id="assessmentResult" class="assessment-result"></div>
+            </section>
+
+            <!-- History Tab -->
+            <section id="history" class="tab-content">
+                <div class="content-header">
+                    <h2>Conversation History</h2>
+                    <p>Review your previous queries and assessments</p>
+                </div>
+                <div id="historyContent" class="history-list">
+                    <!-- History will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Legal References Tab -->
+            <section id="legal" class="tab-content">
+                <div class="content-header">
+                    <h2>Legal References</h2>
+                    <p>Malaysian laws and regulations related to DLP</p>
+                </div>
+                <div id="legalContent" class="legal-references">
+                    <!-- Legal references will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Feedback Tab -->
+            <section id="feedback" class="tab-content">
+                <div class="content-header">
+                    <h2>Send Feedback</h2>
+                    <p>Help us improve the DLP Chatbot</p>
+                </div>
+                <form id="feedbackForm" class="feedback-form">
+                    <div class="form-group">
+                        <label for="feedbackType">Feedback Type:</label>
+                        <select id="feedbackType" required>
+                            <option value="">-- Select Type --</option>
+                            <option value="suggestion">Suggestion</option>
+                            <option value="bug">Bug Report</option>
+                            <option value="praise">Praise</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rating">Rating:</label>
+                        <div class="rating-stars">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                            <span class="star" data-value="4">★</span>
+                            <span class="star" data-value="5">★</span>
+                        </div>
+                        <input type="hidden" id="rating" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedbackText">Your Feedback:</label>
+                        <textarea id="feedbackText" rows="5" required placeholder="Please share your feedback..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedbackEmail">Email (optional):</label>
+                        <input type="email" id="feedbackEmail" placeholder="your@email.com">
+                    </div>
+
+                    <button type="submit" class="btn-primary">Submit Feedback</button>
+                </form>
+                <div id="feedbackStatus" class="feedback-status"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="notification"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

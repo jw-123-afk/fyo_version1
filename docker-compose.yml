@@ -14,6 +14,9 @@ services:
       - ./:/usr/src/app    # mount project root so /usr/src/app/app is the package
     ports:
       - "5100:5000"  # Expose Flask app on port 5000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    
     command: ["conda", "run", "--no-capture-output", "-n", "pcd", "flask", "run", "--host=0.0.0.0", "--port=5000", "--reload"]
     restart: unless-stopped
     depends_on:

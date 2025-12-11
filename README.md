@@ -160,10 +160,109 @@ MIT License
 
 ---
 
+## DLP Chatbot Enhancement
+
+This project now includes a comprehensive **Q-Rule-Based Chatbot for Defects Liability Period (DLP)** in Malaysian property law.
+
+### What is the DLP Chatbot?
+
+The chatbot is an intelligent system designed to help users understand and navigate the Defects Liability Period in Malaysian property law, including:
+
+- **Housing Development Act 1966 (HDA)** provisions
+- **Standard Conditions of Sale (SPA)** clauses
+- **Buyer rights** and developer responsibilities
+- **Claims process** and assessment
+
+### Core Features (All 6 Implemented)
+
+1. ✅ **Natural Language Query Processing** - Ask questions about DLP in your own words
+2. ✅ **Static Guidelines Access** - Learn about DLP without submitting specific queries
+3. ✅ **Conversation History** - Review and retrieve past advice and assessments
+4. ✅ **Log Deletion** - Delete conversations for privacy protection
+5. ✅ **Legal References** - Access HDA, SPA, and other legal documents
+6. ✅ **Feedback System** - Rate accuracy and suggest improvements
+
+### Technology Stack
+
+- **Backend**: Python Flask with rule-based logic engine
+- **Frontend**: HTML5, CSS3, Vanilla JavaScript
+- **Knowledge Base**: Malaysian legal standards and DLP guidelines
+- **Storage**: JSON-based persistent storage
+- **API**: RESTful endpoints for all functionality
+
+### Quick Start - DLP Chatbot
+
+1. **Install dependencies**:
+```bash
+pip install -r requirements.txt
+```
+
+2. **Run the application**:
+```bash
+python -c "from app import create_app; app = create_app(); app.run(debug=True, host='0.0.0.0', port=5000)"
+```
+
+3. **Access the chatbot**:
+   - Open `http://localhost:5000` in your browser
+   - Start chatting about property defects and DLP
+
+4. **Test all features**:
+```bash
+python test_features.py
+```
+
+### Using Docker
+
+```bash
+docker-compose up --build
+```
+
+Then access at `http://localhost:5000`
+
+### Accessing Different Features
+
+- **💬 Chat Tab**: Ask natural language questions
+- **📚 Guidelines Tab**: Access 10 comprehensive DLP guides
+- **🔍 Assessment Tab**: Assess your defect claim
+- **📖 Logs Tab**: View and manage conversation history
+- **⚖️ Legal References**: Access legal documents
+- **⭐ Feedback Tab**: Rate and submit suggestions
+
+### File Structure
+
+```
+app/
+├── dlp_knowledge_base.py      # Malaysian legal knowledge & rules
+├── chatbot_core.py             # NLP & response generation
+├── conversation_logger.py      # Session & history management
+├── feedback_manager.py         # Rating & feedback tracking
+├── module1/routes.py           # Chatbot API endpoints
+├── module2/routes.py           # Frontend serving
+├── templates/
+│   └── index.html              # Interactive UI
+└── static/
+    ├── css/style.css           # Responsive styling
+    └── js/app.js               # Client-side logic
+```
+
+### Data Storage
+
+- **Conversations**: Stored in `data/conversations/` as JSON files
+- **Feedback**: Stored in `data/feedback/feedback_log.json`
+- All data persists across sessions and restarts
+
+### Documentation
+
+For comprehensive documentation, see: **`DLP_CHATBOT_README.md`**
+
+---
+
 ## Conclusion
 
-This project is a **modular Flask web application** with a **Docker setup** for easy development and deployment. By organizing the application into **blueprints**, we ensure that the code remains scalable and easy to maintain. Additionally, by mounting the `data/` folder, we ensure that important data is persisted even across Docker container restarts.
+This project is now a **comprehensive DLP Chatbot system** with a **modular Flask architecture**. It combines rule-based reasoning with an intuitive web interface to provide accessible legal guidance on Malaysian property law. By organizing the application into **blueprints**, we ensure scalability and maintainability. The **data persistence** ensures that conversation history and feedback are preserved across sessions.
 
-Feel free to modify and extend the project for your specific needs!
+The system is production-ready and suitable for deployment in various environments to help property buyers, developers, and legal practitioners understand their rights and responsibilities regarding Defects Liability Period in Malaysia.
+
+---
 
 ---
