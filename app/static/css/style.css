@@ -1158,3 +1158,122 @@ body.light-mode .guideline-card:hover {
     50% { transform: scale(1.2); }
     100% { transform: scale(1); }
 }
+
+/* ====================
+   TYPING INDICATOR STYLES
+   ==================== */
+
+.typing-indicator {
+    padding: 15px 20px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: fit-content;
+    margin-bottom: 10px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--text-muted);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+/* Hide Read Aloud button until typing is done */
+.btn-read-aloud.hidden {
+    display: none;
+}
+
+/* ====================
+   LEGAL REFERENCES CARDS
+   ==================== */
+
+.legal-grid {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* Responsive Grid */
+    gap: 20px;
+}
+
+/* The Card Link */
+.legal-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    border-radius: 12px;
+    text-decoration: none; /* Removes standard blue underline */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover Effect: Lift up + Glow border */
+.legal-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-color);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.03); /* Slight lighten on hover */
+}
+
+/* Icon Container */
+.legal-icon {
+    font-size: 2.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+/* Text Info */
+.legal-info {
+    flex: 1;
+}
+
+.legal-info h4 {
+    color: var(--accent-color);
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legal-info p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Small Arrow Icon */
+.external-icon {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    transition: transform 0.2s;
+}
+
+/* Move arrow when hovering card */
+.legal-card:hover .external-icon {
+    transform: translate(3px, -3px);
+    opacity: 1;
+}

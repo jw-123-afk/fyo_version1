@@ -264,10 +264,15 @@ class DLPChatbotApp {
         const text = this.userInput.value.trim();
         if (!text) return;
 
+        // 1. Show User Message immediately
         this.userInput.value = '';
-        this.addMessageToActiveChat(text, 'user');
+        this.addMessageToActiveChat(text, 'user', false); // false = no animation for user
+
+        // 2. Show "Typing..." Indicator
+        this.showTypingIndicator();
 
         try {
+            // 3. Fetch Response
             const response = await fetch(`${this.apiBaseUrl}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -276,33 +281,97 @@ class DLPChatbotApp {
 
             const data = await response.json();
             const botReply = data.response || "I didn't understand that.";
-            this.addMessageToActiveChat(botReply, 'bot');
+
+            // 4. Remove Typing Indicator & Show Bot Message (Animated)
+            this.removeTypingIndicator();
+            this.addMessageToActiveChat(botReply, 'bot', true); // true = animate this
 
         } catch (error) {
             console.error('Chat error:', error);
-            this.addMessageToActiveChat("Error connecting to server.", 'bot');
+            this.removeTypingIndicator();
+            this.addMessageToActiveChat("Error connecting to server.", 'bot', false);
         }
     }
 
-    addMessageToActiveChat(text, sender) {
+    /**
+     * Add message to data and UI
+     * @param {string} text - The message text
+     * @param {string} sender - 'user' or 'bot'
+     * @param {boolean} animate - Whether to use typewriter effect
+     */
+    addMessageToActiveChat(text, sender, animate = false) {
         const chat = this.conversations.find(c => c.id === this.activeChatId);
         if (!chat) return;
 
+        // Save to memory
         chat.messages.push({ text, sender, timestamp: new Date() });
 
+        // Auto-title if new chat
         if (chat.messages.length === 1 && sender === 'user') {
             chat.title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
         }
 
-        this.renderMessageHTML(text, sender);
         this.saveData();
+
+        // Render to screen
+        if (animate && sender === 'bot') {
+            this.renderMessageTypewriter(text);
+        } else {
+            this.renderMessageHTML(text, sender);
+        }
     }
 
     renderMessageHTML(message, sender) {
+        const messageDiv = this.createMessageStructure(message, sender);
+        this.chatMessages.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+
+    /**
+     * Typewriter Render (Gradual)
+     */
+    renderMessageTypewriter(text) {
+        // 1. Create the empty shell
+        const messageDiv = this.createMessageStructure('', 'bot'); // Empty text first
+        const bubble = messageDiv.querySelector('.message-bubble');
+        const readBtn = messageDiv.querySelector('.btn-read-aloud');
+        
+        // Hide the speaker icon while typing
+        if(readBtn) readBtn.classList.add('hidden');
+
+        this.chatMessages.appendChild(messageDiv);
+        
+        // 2. Start Typing Loop
+        let i = 0;
+        const speed = 15; // Speed in ms (lower is faster)
+
+        const typeLoop = () => {
+            if (i < text.length) {
+                bubble.textContent += text.charAt(i);
+                i++;
+                this.scrollToBottom(); // Keep scrolling as text grows
+                setTimeout(typeLoop, speed);
+            } else {
+                // Done typing: Show speaker button
+                if(readBtn) readBtn.classList.remove('hidden');
+                
+                // Re-attach the click listener for the speaker (since we just revealed it)
+                // Note: The listener is already attached in createMessageStructure, 
+                // we just need to update the text payload if needed, but here it's static.
+            }
+        };
+
+        typeLoop();
+    }
+
+    /**
+     * Helper to create the HTML structure
+     */
+    createMessageStructure(text, sender) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${sender}`;
 
-        // 1. Add Avatar (Bot only)
+        // Avatar
         if (sender === 'bot') {
             const avatar = document.createElement('div');
             avatar.className = 'chat-avatar';
@@ -310,35 +379,61 @@ class DLPChatbotApp {
             messageDiv.appendChild(avatar);
         }
 
-        // 2. The Message Bubble
+        // Bubble
         const bubble = document.createElement('div');
         bubble.className = 'message-bubble';
-        bubble.textContent = message;
+        bubble.textContent = text;
         messageDiv.appendChild(bubble);
 
-        // 3. NEW: Add Read Aloud Button (Bot only)
+        // Speaker Button
         if (sender === 'bot') {
             const readBtn = document.createElement('button');
             readBtn.className = 'btn-read-aloud';
             readBtn.innerHTML = '🔊';
             readBtn.title = "Read Aloud";
             
-            // Click Event for TTS
+            // Attach Speech Event (using the full text passed in initially)
+            // Note: For typewriter, the text variable here is empty initially, 
+            // so we need to ensure the click handler grabs the *current* text from the bubble.
             readBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent triggering other clicks
-                this.toggleSpeech(message, readBtn, messageDiv);
+                e.stopPropagation();
+                // Grab text dynamically from the bubble in case it was typed in later
+                const finalText = bubble.textContent; 
+                this.toggleSpeech(finalText, readBtn, messageDiv);
             });
 
             messageDiv.appendChild(readBtn);
         }
 
-        this.chatMessages.appendChild(messageDiv);
+        return messageDiv;
+    }
 
-        // Auto-scroll
+    // --- TYPING INDICATORS ---
+
+    showTypingIndicator() {
+        const div = document.createElement('div');
+        div.id = 'typingIndicator';
+        div.className = 'chat-message bot';
+        div.innerHTML = `
+            <div class="chat-avatar">🤖</div>
+            <div class="typing-indicator">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        `;
+        this.chatMessages.appendChild(div);
+        this.scrollToBottom();
+    }
+
+    removeTypingIndicator() {
+        const el = document.getElementById('typingIndicator');
+        if (el) el.remove();
+    }
+
+    scrollToBottom() {
         const chatContainer = this.chatMessages.parentElement;
-        setTimeout(() => {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }, 50);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
     // ==========================================================
