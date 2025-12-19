@@ -1,379 +1,452 @@
 /**
  * DLP Chatbot - Main Application Logic
- * Handles chat interface, tab navigation, form submissions, and API communication
+ * Merged: Chat History + Assessment + Guidelines + Feedback
  */
 
 class DLPChatbotApp {
     constructor() {
-        this.currentTab = 'chat';
-        this.conversationHistory = [];
-        this.selectedRating = 0;
+        // Core State
+        this.conversations = []; // Stores ALL conversations
+        this.activeChatId = null; // ID of the currently open chat
         this.apiBaseUrl = '/api';
+        this.selectedRating = 0;
+        this.currentUtterance = null; // Track current speech object
+        
         
         this.init();
     }
 
-    /**
-     * Initialize the application
-     */
     init() {
         this.cacheElements();
         this.attachEventListeners();
-        this.loadInitialContent();
-        console.log('DLP Chatbot initialized successfully');
+        this.loadSavedData(); // Loads all chats from LocalStorage
     }
 
-    /**
-     * Cache DOM elements for better performance
-     */
     cacheElements() {
-        // Navigation
+        // Navigation & Sidebar
         this.navTabs = document.querySelectorAll('.nav-tab');
         this.tabContents = document.querySelectorAll('.tab-content');
+        this.conversationListEl = document.getElementById('conversationList');
+        this.newChatBtn = document.getElementById('newChatBtn');
         
-        // Chat
+        // Chat Area
         this.userInput = document.getElementById('userInput');
         this.sendBtn = document.getElementById('sendBtn');
         this.chatMessages = document.getElementById('chatMessages');
         
-        // Forms
+        // Guidelines Area
+        this.backToChatBtn = document.getElementById('backToChatBtn');
+
+        // Assessment Form
         this.assessmentForm = document.getElementById('assessmentForm');
-        this.feedbackForm = document.getElementById('feedbackForm');
-        
-        // Buttons
-        this.clearHistoryBtn = document.getElementById('clearHistory');
-        this.toggleThemeBtn = document.getElementById('toggleTheme');
-        
-        // Content containers
-        this.guidelinesContent = document.getElementById('guidelinesContent');
-        this.historyContent = document.getElementById('historyContent');
-        this.legalContent = document.getElementById('legalContent');
         this.assessmentResult = document.getElementById('assessmentResult');
+
+        // Feedback Form
+        this.feedbackForm = document.getElementById('feedbackForm');
         this.feedbackStatus = document.getElementById('feedbackStatus');
-        this.notification = document.getElementById('notification');
-        
-        // Stars
         this.stars = document.querySelectorAll('.star');
         this.ratingInput = document.getElementById('rating');
+
+        // Legal Section
+        this.legalContent = document.getElementById('legalContent');
+        
+        // General UI
+        this.clearDataBtn = document.getElementById('clearAllData');
+        this.toggleThemeBtn = document.getElementById('toggleTheme');
+        this.notification = document.getElementById('notification');
     }
 
-    /**
-     * Attach event listeners to elements
-     */
     attachEventListeners() {
-        // Tab navigation
+        // Navigation
         this.navTabs.forEach(tab => {
             tab.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
         });
 
-        // Chat
+        // Chat Actions
+        this.newChatBtn.addEventListener('click', () => this.startNewChat());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
         this.userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendMessage();
         });
 
-        // Forms
-        this.assessmentForm.addEventListener('submit', (e) => this.handleAssessment(e));
-        this.feedbackForm.addEventListener('submit', (e) => this.handleFeedback(e));
+        // Back Button in Guidelines
+        if (this.backToChatBtn) {
+            this.backToChatBtn.addEventListener('click', () => this.switchTab('chat'));
+        }
 
-        // Buttons
-        this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
-        this.toggleThemeBtn.addEventListener('click', () => this.toggleTheme());
+        // Form Submissions
+        if (this.assessmentForm) {
+            this.assessmentForm.addEventListener('submit', (e) => this.handleAssessment(e));
+        }
+        if (this.feedbackForm) {
+            this.feedbackForm.addEventListener('submit', (e) => this.handleFeedback(e));
+        }
 
-        // Rating stars
+        // Rating Stars
         this.stars.forEach(star => {
             star.addEventListener('click', () => this.setRating(star.dataset.value));
             star.addEventListener('mouseover', () => this.hoverRating(star.dataset.value));
             star.addEventListener('mouseout', () => this.unhoverRating());
         });
+
+        // Settings
+        if (this.clearDataBtn) this.clearDataBtn.addEventListener('click', () => this.clearAllData());
+        if (this.toggleThemeBtn) this.toggleThemeBtn.addEventListener('click', () => this.toggleTheme());
     }
 
-    /**
-     * Switch between tabs
-     */
-    switchTab(tabName) {
-        // Update active tab button
-        this.navTabs.forEach(tab => tab.classList.remove('active'));
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    // ==========================================================
+    // 1. CONVERSATION MANAGEMENT (History, Save, Load)
+    // ==========================================================
 
-        // Show/hide tab content
-        this.tabContents.forEach(content => content.classList.remove('active'));
-        document.getElementById(tabName).classList.add('active');
-
-        this.currentTab = tabName;
-
-        // Load content based on tab
-        if (tabName === 'guidelines') this.loadGuidelines();
-        if (tabName === 'history') this.loadHistory();
-        if (tabName === 'legal') this.loadLegalReferences();
-    }
-
-    /**
-     * Send chat message
-     */
-    async sendMessage() {
-        const message = this.userInput.value.trim();
-        
-        if (!message) {
-            this.showNotification('Please enter a message', 'warning');
-            return;
+    loadSavedData() {
+        // Load Theme
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-mode');
         }
 
-        // Clear input
-        this.userInput.value = '';
-
-        // Add user message to UI
-        this.addMessageToChat(message, 'user');
-
-        try {
-            // Send to API
-            const response = await fetch(`${this.apiBaseUrl}/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message })
-            });
-
-            if (!response.ok) {
-                throw new Error(`API error: ${response.statusText}`);
+        // Load Conversations
+        const saved = localStorage.getItem('dlp_conversations');
+        if (saved) {
+            try {
+                this.conversations = JSON.parse(saved);
+            } catch (e) {
+                console.error("Error loading history", e);
+                this.conversations = [];
             }
+        }
 
-            const data = await response.json();
-            const botResponse = data.response || 'I could not process your message. Please try again.';
+        // Open recent chat or create new
+        if (this.conversations.length > 0) {
+            this.loadChat(this.conversations[0].id);
+        } else {
+            this.startNewChat();
+        }
+        
+        this.renderSidebarHistory();
+    }
+
+    saveData() {
+        localStorage.setItem('dlp_conversations', JSON.stringify(this.conversations));
+        this.renderSidebarHistory();
+    }
+
+    startNewChat() {
+        const newChatId = Date.now();
+        const newChat = {
+            id: newChatId,
+            title: "New Chat",
+            messages: []
+        };
+
+        this.conversations.unshift(newChat);
+        this.loadChat(newChatId);
+        this.saveData();
+        this.switchTab('chat');
+    }
+
+    loadChat(chatId) {
+        this.stopSpeaking();
+        this.activeChatId = chatId;
+        const chat = this.conversations.find(c => c.id === chatId);
+        if (!chat) return;
+
+        this.chatMessages.innerHTML = '';
+        chat.messages.forEach(msg => {
+            this.renderMessageHTML(msg.text, msg.sender);
+        });
+        
+        this.renderSidebarHistory();
+    }
+
+    renderSidebarHistory() {
+        if(!this.conversationListEl) return;
+        this.conversationListEl.innerHTML = '';
+
+        this.conversations.forEach(chat => {
+            const row = document.createElement('div');
+            row.className = `history-item-row ${chat.id === this.activeChatId ? 'active' : ''}`;
             
-            // Add bot response to UI
-            this.addMessageToChat(botResponse, 'bot');
-            
-            // Store in history
-            this.conversationHistory.push({
-                user: message,
-                bot: botResponse,
-                timestamp: new Date()
+            row.addEventListener('click', (e) => {
+                if (e.target.closest('.history-actions') || e.target.tagName === 'INPUT') return;
+                this.loadChat(chat.id);
+                this.switchTab('chat');
             });
 
-        } catch (error) {
-            console.error('Chat error:', error);
-            this.addMessageToChat('Sorry, there was an error processing your message.', 'bot');
-            this.showNotification('Error sending message', 'error');
-        }
-    }
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'history-title-text';
+            titleSpan.textContent = chat.title || 'New Chat';
+            titleSpan.addEventListener('dblclick', () => this.enableRenaming(chat.id, titleSpan));
 
-    /**
-     * Add message to chat display
-     */
-    addMessageToChat(message, sender) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message ${sender}`;
-        
-        const bubble = document.createElement('div');
-        bubble.className = 'message-bubble';
-        bubble.textContent = message;
-        
-        messageDiv.appendChild(bubble);
-        this.chatMessages.appendChild(messageDiv);
-        
-        // Scroll to bottom
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-    }
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'history-actions';
 
-    /**
-     * Load guidelines content
-     */
-    async loadGuidelines() {
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/guidelines`);
-            const data = await response.json();
-            const guidelines = data.guidelines || [];
-
-            this.guidelinesContent.innerHTML = '';
-            guidelines.forEach(guideline => {
-                const card = document.createElement('div');
-                card.className = 'guideline-card';
-                card.innerHTML = `
-                    <h3>${guideline.title || 'Guideline'}</h3>
-                    <p>${guideline.content || ''}</p>
-                `;
-                this.guidelinesContent.appendChild(card);
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn-icon-action';
+            editBtn.innerHTML = '✏️';
+            editBtn.title = "Rename Chat";
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.enableRenaming(chat.id, titleSpan);
             });
 
-            if (guidelines.length === 0) {
-                this.guidelinesContent.innerHTML = '<p>No guidelines available.</p>';
-            }
-        } catch (error) {
-            console.error('Error loading guidelines:', error);
-            this.guidelinesContent.innerHTML = '<p>Error loading guidelines.</p>';
-        }
-    }
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-icon-action btn-delete';
+            deleteBtn.innerHTML = '🗑️';
+            deleteBtn.title = "Delete Chat";
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteChat(chat.id);
+            });
 
-    /**
-     * Load conversation history
-     */
-    loadHistory() {
-        this.historyContent.innerHTML = '';
-
-        if (this.conversationHistory.length === 0) {
-            this.historyContent.innerHTML = '<p>No conversation history yet. Start chatting!</p>';
-            return;
-        }
-
-        this.conversationHistory.forEach((item, index) => {
-            const historyItem = document.createElement('div');
-            historyItem.className = 'history-item';
-            
-            const timestamp = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Unknown time';
-            
-            historyItem.innerHTML = `
-                <h4>Query ${index + 1}</h4>
-                <p><strong>Your Question:</strong> ${item.user}</p>
-                <p><strong>Response:</strong> ${item.bot}</p>
-                <span class="timestamp">${timestamp}</span>
-            `;
-            
-            this.historyContent.appendChild(historyItem);
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(deleteBtn);
+            row.appendChild(titleSpan);
+            row.appendChild(actionsDiv);
+            this.conversationListEl.appendChild(row);
         });
     }
 
-    /**
-     * Load legal references
-     */
-    async loadLegalReferences() {
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/legal-references`);
-            const data = await response.json();
-            const references = data.references || [];
-
-            this.legalContent.innerHTML = '';
-            references.forEach(ref => {
-                const item = document.createElement('div');
-                item.className = 'legal-item';
-                item.innerHTML = `
-                    <h4>${ref.title || 'Reference'}</h4>
-                    <p>${ref.content || ''}</p>
-                `;
-                this.legalContent.appendChild(item);
-            });
-
-            if (references.length === 0) {
-                this.legalContent.innerHTML = '<p>No legal references available.</p>';
+    deleteChat(chatId) {
+        if (!confirm('Are you sure you want to delete this conversation?')) return;
+        this.conversations = this.conversations.filter(c => c.id !== chatId);
+        
+        if (chatId === this.activeChatId) {
+            if (this.conversations.length > 0) {
+                this.loadChat(this.conversations[0].id);
+            } else {
+                this.startNewChat();
+                return;
             }
-        } catch (error) {
-            console.error('Error loading legal references:', error);
-            this.legalContent.innerHTML = '<p>Error loading legal references.</p>';
+        }
+        this.saveData();
+    }
+
+    enableRenaming(chatId, titleElement) {
+        const currentTitle = titleElement.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'history-rename-input';
+        input.value = currentTitle;
+        
+        const save = () => {
+            const newTitle = input.value.trim();
+            if (newTitle) {
+                this.updateChatTitle(chatId, newTitle);
+            } else {
+                this.renderSidebarHistory();
+            }
+        };
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') input.blur();
+            if (e.key === 'Escape') this.renderSidebarHistory();
+        });
+        input.addEventListener('blur', save);
+
+        titleElement.innerHTML = '';
+        titleElement.appendChild(input);
+        input.focus();
+    }
+
+    updateChatTitle(chatId, newTitle) {
+        const chat = this.conversations.find(c => c.id === chatId);
+        if (chat) {
+            chat.title = newTitle;
+            this.saveData();
         }
     }
 
-    /**
-     * Handle assessment form submission
-     */
+    // ==========================================================
+    // 2. MESSAGING LOGIC
+    // ==========================================================
+
+    async sendMessage() {
+        const text = this.userInput.value.trim();
+        if (!text) return;
+
+        this.userInput.value = '';
+        this.addMessageToActiveChat(text, 'user');
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+
+            const data = await response.json();
+            const botReply = data.response || "I didn't understand that.";
+            this.addMessageToActiveChat(botReply, 'bot');
+
+        } catch (error) {
+            console.error('Chat error:', error);
+            this.addMessageToActiveChat("Error connecting to server.", 'bot');
+        }
+    }
+
+    addMessageToActiveChat(text, sender) {
+        const chat = this.conversations.find(c => c.id === this.activeChatId);
+        if (!chat) return;
+
+        chat.messages.push({ text, sender, timestamp: new Date() });
+
+        if (chat.messages.length === 1 && sender === 'user') {
+            chat.title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
+        }
+
+        this.renderMessageHTML(text, sender);
+        this.saveData();
+    }
+
+    renderMessageHTML(message, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${sender}`;
+
+        // 1. Add Avatar (Bot only)
+        if (sender === 'bot') {
+            const avatar = document.createElement('div');
+            avatar.className = 'chat-avatar';
+            avatar.innerHTML = '🤖';
+            messageDiv.appendChild(avatar);
+        }
+
+        // 2. The Message Bubble
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.textContent = message;
+        messageDiv.appendChild(bubble);
+
+        // 3. NEW: Add Read Aloud Button (Bot only)
+        if (sender === 'bot') {
+            const readBtn = document.createElement('button');
+            readBtn.className = 'btn-read-aloud';
+            readBtn.innerHTML = '🔊';
+            readBtn.title = "Read Aloud";
+            
+            // Click Event for TTS
+            readBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent triggering other clicks
+                this.toggleSpeech(message, readBtn, messageDiv);
+            });
+
+            messageDiv.appendChild(readBtn);
+        }
+
+        this.chatMessages.appendChild(messageDiv);
+
+        // Auto-scroll
+        const chatContainer = this.chatMessages.parentElement;
+        setTimeout(() => {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 50);
+    }
+
+    // ==========================================================
+    // 3. ASSESSMENT & FORMS LOGIC (Restored)
+    // ==========================================================
+
     async handleAssessment(e) {
         e.preventDefault();
-
+        
+        // Basic data gathering
         const formData = {
             defect_type: document.getElementById('defectType').value,
             reported_within: document.getElementById('reportedWithin').value,
             severity: document.getElementById('severity').value,
-            repair_cost: document.getElementById('repairCost').value,
-            details: document.getElementById('details').value
+            repair_cost: document.getElementById('repairCost').value
         };
 
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/assess`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
-
-            const data = await response.json();
-            this.displayAssessmentResult(data);
-            this.showNotification('Assessment completed', 'success');
-
-        } catch (error) {
-            console.error('Assessment error:', error);
-            this.showNotification('Error running assessment', 'error');
-        }
-    }
-
-    /**
-     * Display assessment result
-     */
-    displayAssessmentResult(result) {
-        const html = `
-            <h3>Assessment Result</h3>
-            <p><strong>Defect Type:</strong> ${result.defect_type || 'N/A'}</p>
-            <p><strong>Liability Status:</strong> ${result.liability_status || 'N/A'}</p>
-            <p><strong>Recommendation:</strong> ${result.recommendation || 'N/A'}</p>
-            <span class="result-status ${result.severity || 'warning'}">${result.severity || 'Unknown'}</span>
-        `;
-        this.assessmentResult.innerHTML = html;
-    }
-
-    /**
-     * Handle feedback form submission
-     */
-    async handleFeedback(e) {
-        e.preventDefault();
-
-        const feedbackData = {
-            type: document.getElementById('feedbackType').value,
-            rating: this.selectedRating,
-            message: document.getElementById('feedbackText').value,
-            email: document.getElementById('feedbackEmail').value
-        };
-
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/feedback`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(feedbackData)
-            });
-
-            if (response.ok) {
-                this.feedbackForm.reset();
-                this.selectedRating = 0;
-                this.updateStarDisplay();
-                this.showFeedbackStatus('Thank you for your feedback!', 'success');
-                this.showNotification('Feedback submitted successfully', 'success');
-            } else {
-                this.showFeedbackStatus('Error submitting feedback', 'error');
-            }
-
-        } catch (error) {
-            console.error('Feedback error:', error);
-            this.showFeedbackStatus('Error submitting feedback', 'error');
-        }
-    }
-
-    /**
-     * Set rating from star click
-     */
-    setRating(value) {
-        this.selectedRating = parseInt(value);
-        this.ratingInput.value = this.selectedRating;
-        this.updateStarDisplay();
-    }
-
-    /**
-     * Hover rating display
-     */
-    hoverRating(value) {
-        this.stars.forEach((star, index) => {
-            if (index < value) {
-                star.style.color = 'var(--accent-color)';
-            } else {
-                star.style.color = 'var(--text-muted)';
-            }
+        // Simple mock response if backend isn't ready
+        // You can replace this with a real fetch call if your Python backend handles '/assess'
+        this.displayAssessmentResult({
+            defect_type: formData.defect_type,
+            liability_status: formData.reported_within === 'yes' ? 'Developer Likely Liable' : 'Owner Likely Liable',
+            recommendation: 'Please consult the specific clause in your SPA.',
+            severity: formData.severity
         });
     }
 
-    /**
-     * Remove hover effect on rating
-     */
+    displayAssessmentResult(result) {
+        const html = `
+            <h3>Assessment Result</h3>
+            <p><strong>Defect Type:</strong> ${result.defect_type}</p>
+            <p><strong>Liability Status:</strong> ${result.liability_status}</p>
+            <p><strong>Recommendation:</strong> ${result.recommendation}</p>
+            <span class="result-status ${result.severity}">${result.severity.toUpperCase()}</span>
+        `;
+        this.assessmentResult.innerHTML = html;
+        this.showNotification('Assessment Completed', 'success');
+    }
+
+    async handleFeedback(e) {
+        e.preventDefault();
+        // Just a mock success for now
+        this.feedbackForm.reset();
+        this.selectedRating = 0;
+        this.updateStarDisplay();
+        this.showNotification('Feedback Submitted!', 'success');
+    }
+
+    // ==========================================================
+    // 4. UTILITIES (Tabs, Theme, Ratings, Notifications)
+    // ==========================================================
+
+    switchTab(tabName) {
+        this.stopSpeaking();
+        this.navTabs.forEach(tab => tab.classList.remove('active'));
+        const activeBtn = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
+        if(activeBtn) activeBtn.classList.add('active');
+
+        this.tabContents.forEach(content => content.classList.remove('active'));
+        const activeContent = document.getElementById(tabName);
+        if(activeContent) activeContent.classList.add('active');
+
+        // Scroll to bottom if opening chat
+        if (tabName === 'chat') {
+            const chatContainer = document.querySelector('.chat-container');
+            if(chatContainer) {
+                setTimeout(() => chatContainer.scrollTop = chatContainer.scrollHeight, 50);
+            }
+        }
+    }
+
+    toggleTheme() {
+        document.body.classList.toggle('light-mode');
+        const isDark = !document.body.classList.contains('light-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+
+    clearAllData() {
+        if(confirm("Delete all chat history?")) {
+            this.conversations = [];
+            localStorage.removeItem('dlp_conversations');
+            this.startNewChat();
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        if (!this.notification) return;
+        this.notification.className = `notification show ${type}`;
+        this.notification.textContent = message;
+        setTimeout(() => {
+            this.notification.classList.remove('show');
+        }, 3000);
+    }
+
+    // Rating Logic
+    setRating(value) {
+        this.selectedRating = parseInt(value);
+        if(this.ratingInput) this.ratingInput.value = this.selectedRating;
+        this.updateStarDisplay();
+    }
+    hoverRating(value) {
+        this.stars.forEach((star, index) => {
+            star.style.color = index < value ? 'var(--accent-color)' : 'var(--text-muted)';
+        });
+    }
     unhoverRating() {
         this.updateStarDisplay();
     }
-
-    /**
-     * Update star display based on selected rating
-     */
     updateStarDisplay() {
         this.stars.forEach((star, index) => {
             if (index < this.selectedRating) {
@@ -387,84 +460,70 @@ class DLPChatbotApp {
     }
 
     /**
-     * Show feedback status message
+     * Stop any currently playing speech
      */
-    showFeedbackStatus(message, type) {
-        this.feedbackStatus.className = `feedback-status show ${type}`;
-        this.feedbackStatus.textContent = message;
-        setTimeout(() => {
-            this.feedbackStatus.classList.remove('show');
-        }, 3000);
-    }
-
-    /**
-     * Show notification toast
-     */
-    showNotification(message, type = 'info') {
-        this.notification.className = `notification show ${type}`;
-        this.notification.textContent = message;
+    stopSpeaking() {
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            window.speechSynthesis.cancel();
+        }
         
-        setTimeout(() => {
-            this.notification.classList.remove('show');
-        }, 3000);
+        // Reset all icons back to speaker
+        document.querySelectorAll('.btn-read-aloud').forEach(btn => {
+            btn.textContent = '🔊';
+            btn.classList.remove('speaking');
+            btn.title = "Read Aloud";
+        });
+
+        // Remove highlight from bubbles
+        document.querySelectorAll('.chat-message').forEach(msg => {
+            msg.classList.remove('reading');
+        });
+
+        this.currentUtterance = null;
     }
 
     /**
-     * Clear conversation history
+     * Toggle Text-to-Speech
      */
-    clearHistory() {
-        if (confirm('Are you sure you want to clear all conversation history?')) {
-            this.conversationHistory = [];
-            this.chatMessages.innerHTML = '';
-            this.showNotification('History cleared', 'success');
-            this.loadHistory();
-        }
-    }
-
-    /**
-     * Toggle between light and dark theme
-     */
-    toggleTheme() {
-        document.body.classList.toggle('light-mode');
-        const isDark = !document.body.classList.contains('light-mode');
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        this.showNotification(`Switched to ${isDark ? 'dark' : 'light'} mode`, 'success');
-    }
-
-    /**
-     * Load initial content and preferences
-     */
-    loadInitialContent() {
-        // Load theme preference
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'light') {
-            document.body.classList.add('light-mode');
+    toggleSpeech(text, btn, messageDiv) {
+        // If this specific message is already speaking, stop it.
+        if (this.currentUtterance && btn.classList.contains('speaking')) {
+            this.stopSpeaking();
+            return;
         }
 
-        // Load conversation history from localStorage if available
-        const savedHistory = localStorage.getItem('dlp_history');
-        if (savedHistory) {
-            try {
-                this.conversationHistory = JSON.parse(savedHistory);
-            } catch (e) {
-                console.warn('Could not load saved history');
-            }
-        }
+        // If something else is speaking, stop it first.
+        this.stopSpeaking();
+
+        // Create new speech utterance
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Optional: Select a voice (usually the default is fine, but you can customize)
+        // const voices = window.speechSynthesis.getVoices();
+        // utterance.voice = voices.find(voice => voice.lang.includes('en')) || null;
+
+        // Events
+        utterance.onstart = () => {
+            btn.textContent = '⏹️'; // Switch to Stop icon
+            btn.classList.add('speaking');
+            messageDiv.classList.add('reading');
+        };
+
+        utterance.onend = () => {
+            this.stopSpeaking(); // Reset icons when done
+        };
+
+        utterance.onerror = (e) => {
+            console.error('Speech error:', e);
+            this.stopSpeaking();
+        };
+
+        this.currentUtterance = utterance;
+        window.speechSynthesis.speak(utterance);
     }
 }
 
-/**
- * Initialize app when DOM is ready
- */
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     window.dlpChatbot = new DLPChatbotApp();
-});
-
-/**
- * Save conversation history before leaving page
- */
-window.addEventListener('beforeunload', () => {
-    if (window.dlpChatbot && window.dlpChatbot.conversationHistory.length > 0) {
-        localStorage.setItem('dlp_history', JSON.stringify(window.dlpChatbot.conversationHistory));
-    }
 });

@@ -8,31 +8,33 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h1 class="sidebar-title">DLP Chatbot</h1>
                 <p class="sidebar-subtitle">Malaysian Property Law</p>
+                <button id="newChatBtn" class="btn-new-chat">+ New Chat</button>
             </div>
             
             <nav class="sidebar-nav">
-                <button class="nav-tab active" data-tab="chat">💬 Chat</button>
+                <button class="nav-tab active" data-tab="chat">💬 Current Chat</button>
                 <button class="nav-tab" data-tab="guidelines">📋 Guidelines</button>
                 <button class="nav-tab" data-tab="assessment">⚖️ Assessment</button>
-                <button class="nav-tab" data-tab="history">📚 History</button>
                 <button class="nav-tab" data-tab="legal">⚖️ Legal Refs</button>
                 <button class="nav-tab" data-tab="feedback">💭 Feedback</button>
             </nav>
 
+            <div class="conversation-history-section">
+                <h3 class="history-label">Recent Chats</h3>
+                <div id="conversationList" class="conversation-list"></div>
+            </div>
+
             <div class="sidebar-footer">
-                <button id="clearHistory" class="btn-secondary">Clear History</button>
+                <button id="clearAllData" class="btn-secondary">Clear All Data</button>
                 <button id="toggleTheme" class="btn-secondary">🌙 Theme</button>
             </div>
         </aside>
 
-        <!-- Main Content Area -->
         <main class="main-content">
-            <!-- Chat Tab -->
             <section id="chat" class="tab-content active">
                 <div class="chat-container">
                     <div id="chatMessages" class="chat-messages"></div>
@@ -49,18 +51,56 @@
                 </div>
             </section>
 
-            <!-- Guidelines Tab -->
             <section id="guidelines" class="tab-content">
-                <div class="content-header">
-                    <h2>Defect Liability Period Guidelines</h2>
-                    <p>Comprehensive DLP information for Malaysian property law</p>
-                </div>
-                <div id="guidelinesContent" class="content-grid">
-                    <!-- Guidelines will be loaded here -->
-                </div>
-            </section>
+                <div class="guidelines-container">
+                    
+                    <article class="guidelines-paper">
+                        
+                        <header class="guidelines-header">
+                            <h1>Defect Liability Guidelines</h1>
+                            <p>Malaysian Property Law Reference</p>
+                        </header>
 
-            <!-- Assessment Tab -->
+                        <div class="guidelines-content">
+                            
+                            <div class="guide-section">
+                                <h3><span class="icon">🔍</span> Overview</h3>
+                                <p>The <strong>Defect Liability Period (DLP)</strong> is a mandatory warranty period (typically 24 months) where the developer acts as the "contractor" to fix defects at no cost.</p>
+                            </div>
+
+                            <div class="guide-section">
+                                <h3><span class="icon">⚖️</span> Legal Basis</h3>
+                                <ul>
+                                    <li><strong>HDA 1966:</strong> The primary Housing Development Act.</li>
+                                    <li><strong>Schedule G & H:</strong> Standard agreements for landed & strata titles.</li>
+                                    <li><strong>CIS 7:</strong> QLASSIC quality standards.</li>
+                                </ul>
+                            </div>
+
+                            <div class="guide-section">
+                                <h3><span class="icon">📅</span> Standard Duration</h3>
+                                <ul>
+                                    <li><strong>Residential:</strong> 24 Months from Vacant Possession (VP).</li>
+                                    <li><strong>Commercial:</strong> Typically 12-24 Months (Check your SPA).</li>
+                                </ul>
+                            </div>
+
+                            <div class="guide-section">
+                                <h3><span class="icon">⚠️</span> Common Issues & Tips</h3>
+                                <ul>
+                                    <li><strong>Written Notice:</strong> Report immediately via official channels.</li>
+                                    <li><strong>Evidence:</strong> Photos/Videos are required before renovation.</li>
+                                    <li><strong>Marking:</strong> Use masking tape for visual inspection.</li>
+                                </ul>
+                            </div>
+
+                        </div> <div class="guidelines-footer">
+                            <button id="backToChatBtn">Back to Chat</button>
+                        </div>
+
+                    </article> </div>
+            </section>
+            
             <section id="assessment" class="tab-content">
                 <div class="content-header">
                     <h2>DLP Assessment Tool</h2>
@@ -78,64 +118,47 @@
                             <option value="other">Other Defect</option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label for="reportedWithin">Reported Within DLP Period:</label>
                         <select id="reportedWithin" required>
-                            <option value="">-- Select --</option>
                             <option value="yes">Yes</option>
                             <option value="no">No</option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label for="severity">Severity Level:</label>
                         <select id="severity" required>
-                            <option value="">-- Select Severity --</option>
-                            <option value="minor">Minor (Cosmetic)</option>
-                            <option value="moderate">Moderate (Functional)</option>
-                            <option value="severe">Severe (Safety Risk)</option>
+                            <option value="minor">Minor</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label for="repairCost">Estimated Repair Cost (RM):</label>
                         <input type="number" id="repairCost" min="0" placeholder="Enter amount">
                     </div>
-
-                    <div class="form-group">
-                        <label for="details">Additional Details:</label>
-                        <textarea id="details" rows="4" placeholder="Describe the defect in detail..."></textarea>
-                    </div>
-
                     <button type="submit" class="btn-primary">Run Assessment</button>
                 </form>
                 <div id="assessmentResult" class="assessment-result"></div>
             </section>
 
-            <!-- History Tab -->
-            <section id="history" class="tab-content">
-                <div class="content-header">
-                    <h2>Conversation History</h2>
-                    <p>Review your previous queries and assessments</p>
-                </div>
-                <div id="historyContent" class="history-list">
-                    <!-- History will be loaded here -->
-                </div>
-            </section>
-
-            <!-- Legal References Tab -->
             <section id="legal" class="tab-content">
                 <div class="content-header">
                     <h2>Legal References</h2>
                     <p>Malaysian laws and regulations related to DLP</p>
                 </div>
                 <div id="legalContent" class="legal-references">
-                    <!-- Legal references will be loaded here -->
+                    <div class="legal-item">
+                        <h4>Housing Development Act (HDA)</h4>
+                        <p>The primary act governing residential property development in Malaysia.</p>
+                    </div>
+                    <div class="legal-item">
+                        <h4>Strata Management Act 2013</h4>
+                        <p>Governs the maintenance and management of buildings and common property.</p>
+                    </div>
                 </div>
             </section>
 
-            <!-- Feedback Tab -->
             <section id="feedback" class="tab-content">
                 <div class="content-header">
                     <h2>Send Feedback</h2>
@@ -145,36 +168,15 @@
                     <div class="form-group">
                         <label for="feedbackType">Feedback Type:</label>
                         <select id="feedbackType" required>
-                            <option value="">-- Select Type --</option>
                             <option value="suggestion">Suggestion</option>
                             <option value="bug">Bug Report</option>
-                            <option value="praise">Praise</option>
                             <option value="other">Other</option>
                         </select>
                     </div>
-
-                    <div class="form-group">
-                        <label for="rating">Rating:</label>
-                        <div class="rating-stars">
-                            <span class="star" data-value="1">★</span>
-                            <span class="star" data-value="2">★</span>
-                            <span class="star" data-value="3">★</span>
-                            <span class="star" data-value="4">★</span>
-                            <span class="star" data-value="5">★</span>
-                        </div>
-                        <input type="hidden" id="rating" value="0">
-                    </div>
-
                     <div class="form-group">
                         <label for="feedbackText">Your Feedback:</label>
                         <textarea id="feedbackText" rows="5" required placeholder="Please share your feedback..."></textarea>
                     </div>
-
-                    <div class="form-group">
-                        <label for="feedbackEmail">Email (optional):</label>
-                        <input type="email" id="feedbackEmail" placeholder="your@email.com">
-                    </div>
-
                     <button type="submit" class="btn-primary">Submit Feedback</button>
                 </form>
                 <div id="feedbackStatus" class="feedback-status"></div>
@@ -182,7 +184,6 @@
         </main>
     </div>
 
-    <!-- Notification Toast -->
     <div id="notification" class="notification"></div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
