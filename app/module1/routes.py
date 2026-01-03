@@ -1,18 +1,20 @@
-# app/module1/routes.py
 from flask import Blueprint, request, jsonify
-# We use try/except on imports in case files are missing
+import json
+from datetime import datetime
+
+# Safe Imports
 try:
     from ..chatbot_core import process_query
     from ..conversation_logger import save_history
     from ..dlp_knowledge_base import get_all_guidelines, get_all_legal_references
     from ..feedback_manager import save_feedback
-except ImportError:
-    # Fallback if imports fail
-    process_query = lambda x: "System Error: Modules missing"
+except ImportError as e:
+    print(f"IMPORT ERROR: {e}")
+    # Fallback to prevent crash during startup
+    process_query = lambda x: f"System Error: Backend modules missing. {str(e)}"
     save_history = lambda x: None
-
-import json
-from datetime import datetime
+    get_all_guidelines = lambda: []
+    get_all_legal_references = lambda: []
 
 module1 = Blueprint('module1', __name__, url_prefix='/api')
 
@@ -26,26 +28,27 @@ def api_chat():
         if not message:
             return jsonify({"error": "Empty message"}), 400
         
-        # 1. Get AI Response
-        response = process_query(message)
+        # 1. Get Response from AI (Core Logic)
+        response_text = process_query(message)
         
-        # 2. Save History (Safe Mode)
+        # 2. Save Conversation
         try:
-            save_history({"user": message, "bot": response})
-        except Exception as e:
-            print(f"WARNING: History save failed: {e}")
+            save_history({"user": message, "bot": response_text})
+        except Exception as log_error:
+            print(f"WARNING: History save failed: {log_error}")
             
-        return jsonify({"response": response})
+        return jsonify({"response": response_text})
         
     except Exception as e:
         print(f"CRITICAL ROUTE ERROR: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Server Error: {str(e)}"}), 500
 
-# --- OTHER ENDPOINTS ---
+# --- GUIDELINES ENDPOINT ---
 @module1.route('/guidelines', methods=['GET'])
 def api_guidelines():
     return jsonify({"guidelines": get_all_guidelines()})
 
+# --- LEGAL REFS ENDPOINT ---
 @module1.route('/legal-references', methods=['GET'])
 def api_legal_references():
     return jsonify({"references": get_all_legal_references()})
