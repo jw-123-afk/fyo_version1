@@ -19,4 +19,5 @@ dependencies:
     - pytest
     - black
     - ollama
+    - groq
     # add other pip deps here

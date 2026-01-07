@@ -21,8 +21,7 @@ class DLPChatbotApp {
         this.attachEventListeners();
         this.loadSavedData(); // Loads all chats from LocalStorage
     }
-
-    cacheElements() {
+cacheElements() {
         // Navigation & Sidebar
         this.navTabs = document.querySelectorAll('.nav-tab');
         this.tabContents = document.querySelectorAll('.tab-content');
@@ -33,15 +32,13 @@ class DLPChatbotApp {
         this.userInput = document.getElementById('userInput');
         this.sendBtn = document.getElementById('sendBtn');
         this.chatMessages = document.getElementById('chatMessages');
-        
+
         // Guidelines Area
         this.backToChatBtn = document.getElementById('backToChatBtn');
 
-        // Assessment Form
+        // Forms
         this.assessmentForm = document.getElementById('assessmentForm');
         this.assessmentResult = document.getElementById('assessmentResult');
-
-        // Feedback Form
         this.feedbackForm = document.getElementById('feedbackForm');
         this.feedbackStatus = document.getElementById('feedbackStatus');
         this.stars = document.querySelectorAll('.star');
@@ -65,8 +62,19 @@ class DLPChatbotApp {
         // Chat Actions
         this.newChatBtn.addEventListener('click', () => this.startNewChat());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
+
+        // Enter Key to Send
         this.userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.sendMessage();
+            if (e.key === 'Enter' && !e.shiftKey) { 
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+
+        // Auto-resize Textarea
+        this.userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
         });
 
         // Back Button in Guidelines
@@ -259,40 +267,47 @@ class DLPChatbotApp {
     // ==========================================================
     // 2. MESSAGING LOGIC
     // ==========================================================
-
-    async sendMessage() {
+     async sendMessage() {
         const text = this.userInput.value.trim();
         if (!text) return;
 
-        // 1. Show User Message immediately
+        // Reset input height
+        this.userInput.style.height = 'auto';
         this.userInput.value = '';
-        this.addMessageToActiveChat(text, 'user', false); // false = no animation for user
 
-        // 2. Show "Typing..." Indicator
+        // 1. Show User Message
+        this.addMessageToActiveChat(text, 'user', false);
+
+        // 2. Show Typing Indicator
         this.showTypingIndicator();
 
         try {
-            // 3. Fetch Response
-            const response = await fetch(`${this.apiBaseUrl}/chat`, {
+            // FIX IS HERE: We interpret the URL directly as '/api/chat'
+            // We removed the ${endpoint} variable that was causing the error.
+            const response = await fetch('/api/chat', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: text })
             });
 
             const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
             const botReply = data.response || "I didn't understand that.";
 
-            // 4. Remove Typing Indicator & Show Bot Message (Animated)
+            // 3. Show Bot Message
             this.removeTypingIndicator();
-            this.addMessageToActiveChat(botReply, 'bot', true); // true = animate this
+            this.addMessageToActiveChat(botReply, 'bot', true);
 
         } catch (error) {
             console.error('Chat error:', error);
             this.removeTypingIndicator();
-            this.addMessageToActiveChat("Error connecting to server.", 'bot', false);
+            this.addMessageToActiveChat(`Error: ${error.message || "Connection failed"}`, 'bot', false);
         }
     }
-
     /**
      * Add message to data and UI
      * @param {string} text - The message text
